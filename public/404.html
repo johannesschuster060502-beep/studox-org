@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404 — Seite nicht gefunden · StudoX Impact</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #030314;
+      color: #fff;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      overflow: hidden;
+    }
+    .glow {
+      position: fixed;
+      top: 35%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(244,63,94,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .content { position: relative; z-index: 1; max-width: 480px; }
+    .code {
+      font-size: clamp(80px, 20vw, 140px);
+      font-weight: 900;
+      letter-spacing: -6px;
+      line-height: 1;
+      background: linear-gradient(135deg, #fff 0%, #fecdd3 40%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .emoji { font-size: 48px; margin-bottom: 20px; animation: heartbeat 2s ease-in-out infinite; display: block; }
+    h1 { font-size: clamp(20px, 4vw, 28px); font-weight: 800; color: #fff; margin-bottom: 12px; letter-spacing: -0.5px; }
+    p { color: #6b7280; font-size: 15px; line-height: 1.65; margin-bottom: 36px; }
+    .btn {
+      display: inline-block;
+      padding: 13px 32px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #e11d48, #f97316);
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      text-decoration: none;
+      box-shadow: 0 0 30px rgba(244,63,94,0.3);
+      transition: transform 0.2s;
+      margin: 4px;
+    }
+    .btn:hover { transform: translateY(-2px) scale(1.02); }
+    .btn-ghost {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: none;
+      color: #9ca3af;
+    }
+    .links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    @keyframes heartbeat {
+      0%,100%{transform:scale(1)} 14%{transform:scale(1.2)} 28%{transform:scale(1)} 42%{transform:scale(1.12)} 56%{transform:scale(1)}
+    }
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="content">
+    <span class="emoji">❤️</span>
+    <div class="code">404</div>
+    <h1>Diese Seite gibt es nicht.</h1>
+    <p>Aber unsere Mission schon — gute Bildung für jedes Kind in Europa.<br>Komm zurück und mach mit.</p>
+    <div class="links">
+      <a href="/" class="btn">← Zurück zur Startseite</a>
+      <a href="https://studox.info" class="btn btn-ghost">🎮 Demo ansehen</a>
+    </div>
+  </div>
+</body>
+</html>
