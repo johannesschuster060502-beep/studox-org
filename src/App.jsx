@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import ThreeBackground from "./ThreeBackground";
 
 /* ─── Constants ─────────────────────────────────────────────────────────────── */
 const INFO_URL = "https://studox.info";
@@ -368,9 +369,9 @@ export default function App() {
         ::-webkit-scrollbar-thumb:hover { background: rgba(244,63,94,0.4); }
       `}</style>
 
-      <Particles />
-      {/* Subtle grid */}
-      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, backgroundImage: "linear-gradient(rgba(244,63,94,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.018) 1px,transparent 1px)", backgroundSize: "80px 80px" }} />
+      <ThreeBackground phase={5} />
+      {/* Vignette */}
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 2, background: "radial-gradient(ellipse at 50% 40%,transparent 30%,rgba(3,3,16,0.5) 100%)" }} />
 
       {/* ── NAV ── */}
       <nav style={{
