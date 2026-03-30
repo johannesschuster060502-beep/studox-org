@@ -1,9 +1,12 @@
 /**
- * StudoX 3D WebGL Background — Dark Atmospheric Edition
+ * StudoX 3D WebGL Background — Deep Space Atmosphere
  * ─────────────────────────────────────────────────────────────────────────────
- * Subtle deep-space atmosphere: barely-there orbital atom + starfield galaxy
- * Everything is tuned for READABILITY — the background stays in the background.
- * Bloom is whisper-quiet. The scene breathes, not blinds.
+ * Concept: You're floating in deep space, far from any star.
+ * - Vast, dark, silent. A few nebula clouds glow faintly in the distance.
+ * - Thousands of dim stars scattered across the galaxy plane.
+ * - A single tiny orbital atom, barely visible, deep in the background.
+ * - Bloom is surgical — only the absolute brightest pixels get any glow.
+ * - The scene never competes with the UI. It only breathes behind it.
  */
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
@@ -23,226 +26,193 @@ export default function ThreeBackground({ phase = 5, warp = false }) {
     if (!mount) return;
 
     /* ── Renderer ─────────────────────────────────────────────────── */
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true, alpha: true,
+      powerPreference: "high-performance",
+    });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setClearColor(0x000000, 0);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.55; // dark, dark, dark
-
+    // LinearToneMapping keeps things predictably dark — no ACES brightening
+    renderer.toneMapping = THREE.LinearToneMapping;
+    renderer.toneMappingExposure = 0.4;
     mount.appendChild(renderer.domElement);
 
     /* ── Scene + Camera ───────────────────────────────────────────── */
     const scene  = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
-    camera.position.set(0, 1.5, 10);
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 600);
+    camera.position.set(0, 0, 12);
     camera.lookAt(0, 0, 0);
 
-    /* ── Bloom — whisper quiet ────────────────────────────────────── */
+    /* ── Bloom — absolute minimum, surgical precision ─────────────── */
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.28,   // strength — was 1.6, now barely visible
-      0.5,    // radius
-      0.72    // threshold — only truly bright things glow
+      0.18,   // strength — almost nothing
+      0.6,    // radius
+      0.85    // threshold — only the top 15% brightest pixels glow AT ALL
     );
     composer.addPass(bloomPass);
 
-    /* ── Helpers ──────────────────────────────────────────────────── */
-    const ADD   = THREE.AdditiveBlending;
-    const BSide = THREE.BackSide;
+    const ADD = THREE.AdditiveBlending;
 
-    function glowSphere(radius, color, opacity, side = BSide) {
-      return new THREE.Mesh(
-        new THREE.SphereGeometry(radius, 12, 12),
+    /* ── Deep nebula — very far back, barely there ────────────────── */
+    // These are the soft color blobs you see in real telescope images
+    const nebulas = [
+      { p: [-14,  8, -55], r: 32, c: 0x1a0a3a, o: 0.018 },
+      { p: [ 18, -6, -70], r: 40, c: 0x08203a, o: 0.015 },
+      { p: [  0,  2, -80], r: 50, c: 0x110828, o: 0.020 },
+      { p: [-20,-12, -45], r: 28, c: 0x0a1428, o: 0.012 },
+      { p: [ 10, 14, -40], r: 22, c: 0x1e0a50, o: 0.010 },
+    ];
+    nebulas.forEach(({ p, r, c, o }) => {
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(r, 8, 8),
         new THREE.MeshBasicMaterial({
-          color, transparent: true, opacity,
-          blending: ADD, side, depthWrite: false,
+          color: c, transparent: true, opacity: o,
+          blending: ADD, side: THREE.BackSide, depthWrite: false,
         })
       );
-    }
-
-    /* ── Lights — dim & moody ─────────────────────────────────────── */
-    scene.add(new THREE.AmbientLight(0x05020f, 2));
-
-    const nucleusLight = new THREE.PointLight(0x7c3aed, 1.2, 10);
-    scene.add(nucleusLight);
-
-    const cyanLight = new THREE.PointLight(0x0e7490, 0.6, 18);
-    cyanLight.position.set(7, 2, -1);
-    scene.add(cyanLight);
-
-    const warmLight = new THREE.PointLight(0x4c1d95, 0.4, 16);
-    warmLight.position.set(-6, -3, 4);
-    scene.add(warmLight);
-
-    /* ── Nebula — very faint depth clouds ────────────────────────── */
-    const nebulaDefs = [
-      { p: [-9,  6, -22], r: 20, c: 0x2e1065, o: 0.025 },
-      { p: [11, -5, -28], r: 24, c: 0x0c4a6e, o: 0.020 },
-      { p: [-1,  0, -35], r: 30, c: 0x1e1040, o: 0.022 },
-      { p: [ 5,  9, -16], r: 13, c: 0x581c87, o: 0.015 },
-      { p: [-7, -6, -20], r: 16, c: 0x0f4c5c, o: 0.018 },
-      { p: [ 2, -8, -12], r: 9,  c: 0x3b0764, o: 0.015 },
-    ];
-    nebulaDefs.forEach(({ p, r, c, o }) => {
-      const m = glowSphere(r, c, o);
-      m.position.set(...p);
-      scene.add(m);
+      mesh.position.set(...p);
+      scene.add(mesh);
     });
 
-    /* ── Particle Galaxy — sparse, dim stars ─────────────────────── */
-    const N = 5500;
-    const pPos = new Float32Array(N * 3);
-    const pCol = new Float32Array(N * 3);
-    // Cooler, more muted palette — these stars should barely be there
-    const palette = [
-      [0.38, 0.16, 0.60],  // muted purple
-      [0.01, 0.36, 0.42],  // deep cyan
-      [0.26, 0.10, 0.55],  // dark violet
-      [0.40, 0.37, 0.55],  // grey lavender
-      [0.15, 0.40, 0.44],  // muted teal
-      [0.55, 0.55, 0.65],  // near-white (very rare)
-    ];
-    for (let i = 0; i < N; i++) {
-      let x, y, z;
-      const roll = Math.random();
-      if (roll < 0.65) {
-        const arm      = Math.floor(Math.random() * 3);
-        const armAngle = (arm / 3) * Math.PI * 2;
-        const r = 12 + Math.random() * 50;
-        const θ = armAngle + r * 0.04 + (Math.random() - 0.5) * 0.9;
-        const h = (Math.random() - 0.5) * (3 + r * 0.06);
-        x = r * Math.cos(θ); y = h; z = r * Math.sin(θ);
-      } else if (roll < 0.9) {
-        const r = 30 + Math.random() * 40;
+    /* ── Starfield ────────────────────────────────────────────────── */
+    // Two layers: far galaxy + near halo
+    function makeStars(count, minR, maxR, opacityScale, sizeBase) {
+      const pos = new Float32Array(count * 3);
+      const col = new Float32Array(count * 3);
+      // Star color palette: mostly blue-white, occasional warm, very rare bright
+      const palette = [
+        [0.25, 0.30, 0.55], // blue-grey
+        [0.20, 0.40, 0.50], // teal-grey
+        [0.35, 0.30, 0.50], // purple-grey
+        [0.45, 0.45, 0.55], // near-white grey
+        [0.55, 0.52, 0.42], // warm (rare)
+      ];
+      for (let i = 0; i < count; i++) {
+        const r = minR + Math.random() * (maxR - minR);
         const θ = Math.random() * Math.PI * 2;
         const φ = Math.acos(2 * Math.random() - 1);
-        x = r * Math.sin(φ) * Math.cos(θ);
-        y = r * Math.sin(φ) * Math.sin(θ);
-        z = r * Math.cos(φ);
-      } else {
-        const r = 8 + Math.random() * 14;
-        const θ = Math.random() * Math.PI * 2;
-        const φ = Math.acos(2 * Math.random() - 1);
-        x = r * Math.sin(φ) * Math.cos(θ);
-        y = r * Math.sin(φ) * Math.sin(θ);
-        z = r * Math.cos(φ);
+        pos[i*3]   = r * Math.sin(φ) * Math.cos(θ);
+        pos[i*3+1] = r * Math.sin(φ) * Math.sin(θ) * 0.35; // flattened like a galaxy disk
+        pos[i*3+2] = r * Math.cos(φ);
+        const pidx = Math.random() > 0.93 ? 4 : Math.floor(Math.random() * 4);
+        const pal  = palette[pidx];
+        const b    = opacityScale * (0.3 + Math.random() * 0.7);
+        col[i*3] = pal[0]*b; col[i*3+1] = pal[1]*b; col[i*3+2] = pal[2]*b;
       }
-      pPos[i * 3] = x; pPos[i * 3 + 1] = y; pPos[i * 3 + 2] = z;
-      const pidx = roll > 0.97 ? 5 : Math.floor(Math.random() * 5);
-      const pal  = palette[pidx];
-      const b    = 0.25 + Math.random() * 0.45; // dim — max ~0.7 of already-dim colors
-      pCol[i * 3] = pal[0] * b; pCol[i * 3 + 1] = pal[1] * b; pCol[i * 3 + 2] = pal[2] * b;
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute("color",    new THREE.BufferAttribute(col, 3));
+      return new THREE.Points(geo, new THREE.PointsMaterial({
+        size: sizeBase, vertexColors: true,
+        transparent: true, opacity: 0.7,
+        blending: ADD, depthWrite: false, sizeAttenuation: true,
+      }));
     }
-    const pGeo = new THREE.BufferGeometry();
-    pGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3));
-    pGeo.setAttribute("color",    new THREE.BufferAttribute(pCol, 3));
-    const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
-      size: 0.045, vertexColors: true,
-      transparent: true, opacity: 0.38,
-      blending: ADD, depthWrite: false, sizeAttenuation: true,
-    }));
-    scene.add(particles);
 
-    /* ── Nucleus — subtle, almost invisible in background ────────── */
-    // Very faint outer atmosphere
-    [[7, 0x1a0840, 0.008], [5, 0x2e1065, 0.012], [3.5, 0x4c1d95, 0.018], [2.2, 0x6d28d9, 0.022]].forEach(([r, c, o]) => {
-      scene.add(glowSphere(r, c, o));
-    });
+    const farStars  = makeStars(4000, 40, 180, 0.35, 0.08);  // distant galaxy
+    const nearStars = makeStars(800,  15,  40, 0.20, 0.05);   // nearby space
+    scene.add(farStars);
+    scene.add(nearStars);
 
+    /* ── Orbital atom — tiny, far back, barely visible ───────────── */
+    // Nucleus — very small, very dim
     const nucleus = new THREE.Mesh(
-      new THREE.SphereGeometry(0.78, 48, 48),
-      new THREE.MeshPhongMaterial({
-        color: 0x5b21b6, emissive: 0x4c1d95, emissiveIntensity: 0.6,
-        transparent: true, opacity: 0.60,
-        shininess: 60, specular: 0x9f7aea,
+      new THREE.SphereGeometry(0.45, 32, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0x3b1080, transparent: true, opacity: 0.35, blending: ADD,
       })
     );
+    nucleus.position.set(0, 0, 0);
     scene.add(nucleus);
 
-    // Tiny inner bright core — this is what glows, but barely
-    const innerCore = new THREE.Mesh(
-      new THREE.SphereGeometry(0.22, 32, 32),
+    // Tiny bright center point — this is the only thing that actually "glows"
+    const corePoint = new THREE.Mesh(
+      new THREE.SphereGeometry(0.08, 16, 16),
       new THREE.MeshBasicMaterial({ color: 0xddd6fe, blending: ADD })
     );
-    scene.add(innerCore);
+    scene.add(corePoint);
 
-    // Very faint immediate glow layers
-    scene.add(glowSphere(0.50, 0xc4b5fd, 0.10, THREE.FrontSide));
-    scene.add(glowSphere(0.95, 0x8b5cf6, 0.05, THREE.FrontSide));
-    scene.add(glowSphere(1.40, 0x6d28d9, 0.03, THREE.FrontSide));
+    // Ambient glow shell — very dim
+    scene.add(new THREE.Mesh(
+      new THREE.SphereGeometry(0.9, 12, 12),
+      new THREE.MeshBasicMaterial({
+        color: 0x4c1d95, transparent: true, opacity: 0.04,
+        blending: ADD, side: THREE.BackSide, depthWrite: false,
+      })
+    ));
 
-    /* ── Orbital System — ghost-like rings ───────────────────────── */
-    const ORBIT_R = 3.4;
+    /* ── Orbital rings ────────────────────────────────────────────── */
+    const ORBIT_R = 2.4;
     const orbitDefs = [
-      { rotX: Math.PI * 0.12, rotZ: 0,                  col: 0x7c3aed, speed:  0.38, satPhase: 0 },
-      { rotX: Math.PI * 0.12, rotZ: (Math.PI * 2) / 3,  col: 0x0e7490, speed: -0.28, satPhase: (Math.PI * 2) / 3 },
-      { rotX: Math.PI * 0.12, rotZ: -(Math.PI * 2) / 3, col: 0x4338ca, speed:  0.22, satPhase: (Math.PI * 4) / 3 },
+      { rotX: Math.PI * 0.10, rotZ: 0,                  col: 0x4c1d95, speed:  0.30 },
+      { rotX: Math.PI * 0.10, rotZ: (Math.PI * 2) / 3,  col: 0x0e4f6a, speed: -0.22 },
+      { rotX: Math.PI * 0.10, rotZ: -(Math.PI * 2) / 3, col: 0x312e81, speed:  0.18 },
     ];
 
     const ringPts = [];
-    for (let j = 0; j <= 256; j++) {
-      const a = (j / 256) * Math.PI * 2;
+    for (let j = 0; j <= 128; j++) {
+      const a = (j / 128) * Math.PI * 2;
       ringPts.push(new THREE.Vector3(ORBIT_R * Math.cos(a), 0, ORBIT_R * Math.sin(a)));
     }
     const ringBaseGeo = new THREE.BufferGeometry().setFromPoints(ringPts);
 
-    const orbitGroups = [];
-    const satPivots   = [];
-    const satellites  = [];
+    const satPivots  = [];
+    const satellites = [];
 
     orbitDefs.forEach((def) => {
-      const ringMat = new THREE.LineBasicMaterial({
-        color: def.col, transparent: true, opacity: 0.12, // very faint rings
-        blending: ADD, depthWrite: false,
-      });
-      const ring = new THREE.LineLoop(ringBaseGeo.clone(), ringMat);
-
+      // Ring — ghostly line
+      const ring = new THREE.LineLoop(
+        ringBaseGeo.clone(),
+        new THREE.LineBasicMaterial({
+          color: def.col, transparent: true, opacity: 0.08,
+          blending: ADD, depthWrite: false,
+        })
+      );
       const grp = new THREE.Object3D();
       grp.rotation.x = def.rotX;
       grp.rotation.z = def.rotZ;
       grp.add(ring);
       scene.add(grp);
-      orbitGroups.push(grp);
 
+      // Satellite — tiny bright dot (the only thing that catches bloom)
       const pivot = new THREE.Object3D();
       grp.add(pivot);
       satPivots.push(pivot);
-      pivot.rotation.y = def.satPhase;
 
       const sat = new THREE.Mesh(
-        new THREE.SphereGeometry(0.10, 16, 16),
+        new THREE.SphereGeometry(0.055, 8, 8),
         new THREE.MeshBasicMaterial({ color: def.col, blending: ADD })
       );
       sat.position.set(ORBIT_R, 0, 0);
       pivot.add(sat);
-
-      // Subtle satellite glow — 3 layers, very dim
-      [0.22, 0.38, 0.62].forEach((r, gi) => {
-        const ops = [0.18, 0.07, 0.02];
-        sat.add(glowSphere(r, def.col, ops[gi], THREE.BackSide));
-      });
       satellites.push(sat);
-    });
 
-    /* Energy connector lines — nearly invisible pulse */
-    const connectorMats = orbitDefs.map((d) => new THREE.LineBasicMaterial({
-      color: d.col, transparent: true, opacity: 0.06, blending: ADD, depthWrite: false,
-    }));
-    const connectorGeos = orbitDefs.map(() => {
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
-      return geo;
+      // One tiny glow halo — very subtle
+      sat.add(new THREE.Mesh(
+        new THREE.SphereGeometry(0.14, 8, 8),
+        new THREE.MeshBasicMaterial({
+          color: def.col, transparent: true, opacity: 0.06,
+          blending: ADD, side: THREE.BackSide, depthWrite: false,
+        })
+      ));
     });
-    const connectors = connectorGeos.map((geo, i) => new THREE.Line(geo, connectorMats[i]));
-    connectors.forEach((c) => scene.add(c));
 
     /* ── Mouse Parallax ──────────────────────────────────────────── */
     let mx = 0, my = 0;
-    const onMove  = (e) => { mx = (e.clientX / window.innerWidth  - 0.5) * 2; my = (e.clientY / window.innerHeight - 0.5) * 2; };
-    const onTouch = (e) => { if (e.touches[0]) { mx = (e.touches[0].clientX / window.innerWidth - 0.5) * 2; my = (e.touches[0].clientY / window.innerHeight - 0.5) * 2; } };
+    const onMove  = (e) => {
+      mx = (e.clientX / window.innerWidth  - 0.5) * 2;
+      my = (e.clientY / window.innerHeight - 0.5) * 2;
+    };
+    const onTouch = (e) => {
+      if (e.touches[0]) {
+        mx = (e.touches[0].clientX / window.innerWidth  - 0.5) * 2;
+        my = (e.touches[0].clientY / window.innerHeight - 0.5) * 2;
+      }
+    };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("touchmove",  onTouch, { passive: true });
 
@@ -256,57 +226,42 @@ export default function ThreeBackground({ phase = 5, warp = false }) {
     window.addEventListener("resize", onResize);
 
     /* ── Animation Loop ───────────────────────────────────────────── */
-    let raf;
-    let t    = 0;
-    let camX = 0, camY = 0;
-    let warpT = 0;
+    let raf, t = 0, camX = 0, camY = 0, warpT = 0;
 
     const animate = () => {
       raf = requestAnimationFrame(animate);
       t  += 0.016;
 
       const isWarp = warpRef.current;
-      warpT += isWarp ? 0.04 : -0.04;
+      warpT += isWarp ? 0.05 : -0.05;
       warpT  = Math.max(0, Math.min(1, warpT));
 
-      /* Nucleus — slow subtle pulse */
-      const pulse = 1 + Math.sin(t * 1.2) * 0.018;
-      nucleus.scale.setScalar(pulse);
-      innerCore.scale.setScalar(1 + Math.sin(t * 2.4) * 0.08);
-      nucleusLight.intensity = 1.0 + Math.sin(t * 1.2) * 0.35; // was 8-11, now 0.65-1.35
+      // Nucleus barely pulses — almost imperceptible
+      nucleus.scale.setScalar(1 + Math.sin(t * 0.9) * 0.012);
+      corePoint.scale.setScalar(1 + Math.sin(t * 1.8) * 0.06);
 
-      /* Orbital satellites */
+      // Orbital satellites
       orbitDefs.forEach((def, i) => {
-        const warpMul = 1 + warpT * 5;
+        const warpMul = 1 + warpT * 6;
         satPivots[i].rotation.y += def.speed * 0.016 * warpMul;
       });
 
-      /* Connector lines */
-      satellites.forEach((sat, i) => {
-        const wp = new THREE.Vector3();
-        sat.getWorldPosition(wp);
-        const arr = connectorGeos[i].attributes.position.array;
-        arr[0] = 0; arr[1] = 0; arr[2] = 0;
-        arr[3] = wp.x; arr[4] = wp.y; arr[5] = wp.z;
-        connectorGeos[i].attributes.position.needsUpdate = true;
-        connectorMats[i].opacity = 0.03 + 0.05 * (0.5 + 0.5 * Math.sin(t * 1.1 + i * 2.1));
-      });
+      // Galaxy slow rotation
+      const warpStarMul = 1 + warpT * 25;
+      farStars.rotation.y  += 0.00012 * warpStarMul;
+      farStars.rotation.x  += 0.000035;
+      nearStars.rotation.y += 0.00018 * warpStarMul;
 
-      /* Galaxy drift — slow */
-      const warpParticleMul = 1 + warpT * 20;
-      particles.rotation.y += 0.00018 * warpParticleMul;
-      particles.rotation.x += 0.00005;
-
-      /* Camera parallax — gentle */
-      camX += (mx * 1.2 - camX) * 0.025;
-      camY += (-my * 0.7 - camY) * 0.025;
+      // Camera parallax — very gentle
+      camX += (mx * 0.8 - camX) * 0.022;
+      camY += (-my * 0.5 - camY) * 0.022;
       camera.position.x = camX;
-      camera.position.y = 1.5 + camY;
-      camera.position.z = 10 - warpT * 5;
+      camera.position.y = camY;
+      camera.position.z = 12 - warpT * 6;
       camera.lookAt(0, 0, 0);
 
-      /* Bloom — barely there, tiny warp boost */
-      bloomPass.strength = 0.28 + warpT * 0.45;
+      // Bloom barely changes on warp
+      bloomPass.strength = 0.18 + warpT * 0.35;
 
       composer.render();
     };
@@ -330,7 +285,7 @@ export default function ThreeBackground({ phase = 5, warp = false }) {
       style={{
         position: "fixed", inset: 0, zIndex: 0,
         opacity: phase >= 2 ? 1 : 0,
-        transition: "opacity 1.8s ease",
+        transition: "opacity 2s ease",
       }}
     />
   );
